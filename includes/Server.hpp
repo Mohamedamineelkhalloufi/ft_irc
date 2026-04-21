@@ -42,6 +42,7 @@ public:
     void checkPassword(int fd, std::istringstream &sstring, std::string &nstring);
     void checkNickname(int fd, std::istringstream &sstring, std::string &nstring);
     void checkUsername(int fd, std::istringstream &sstring, std::string &nstring);
+    void isValid(int fd);
 };
 bool isInt(std::string &arg);
 #endif

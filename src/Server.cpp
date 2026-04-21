@@ -30,6 +30,8 @@ void Server::init()
     Serveraddr.sin_port = htons(this->port);
     Serveraddr.sin_addr.s_addr = INADDR_ANY;
     
+    int opt = 1;
+    setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
     int rbind = bind(socket_fd, (sockaddr*)&Serveraddr, sizeof(Serveraddr));
     if(rbind < 0)
         throw std::runtime_error("Error bind() failed");
@@ -98,13 +100,13 @@ void Server::handleClient(int fd)
         this->Clients[fd].input = buffer;
         std::istringstream sstring(this->Clients[fd].input);
         std::string nstring;
-        while (sstring >> nstring)
-        {
-            checkPassword(fd, sstring, nstring);
-            checkNickname(fd, sstring, nstring);
-            checkUsername(fd, sstring, nstring);
-            // send(fd, "464 :Password required\r\n", 25, 0);
-        }
+        sstring >> nstring;
+        checkPassword(fd, sstring, nstring);
+        checkNickname(fd, sstring, nstring);
+        checkUsername(fd, sstring, nstring);
+        if (!Clients[fd].vPassword)
+            send(fd, "464 :Password required\r\n", 25, 0);
+        isValid(fd);
     }
     if (buffer[0] == '1')
      {
@@ -113,57 +115,6 @@ void Server::handleClient(int fd)
         close(this->socket_fd);
         std::cout << "exit :)" << std::endl;
         exit(0);
-    }
-}
-
-void Server::checkUsername(int fd, std::istringstream &sstring, std::string &nstring)
-{
-    if (nstring == "USER" && Clients[fd].vPassword)
-    {
-        sstring >> nstring;
-        if (!Clients[fd].isVuser())
-        {
-            Clients[fd].setVuser(true);
-            Clients[fd].setUsername(nstring);
-            send(fd, "USER : OK\n", 10, 0);
-        }
-        else
-            send(fd, "462 :You may not reregister\n", 29, 0);
-    }
-}
-
-void Server::checkNickname(int fd, std::istringstream &sstring, std::string &nstring)
-{
-    if (nstring == "NICK" && Clients[fd].vPassword)
-    {
-        sstring >> nstring;
-        for (size_t i = 0; i < Clients.size(); i++)
-        {
-            if (i != fd && nstring == Clients[i].getNickname())
-            {
-                send(fd, "433 :Nickname is already in use\n", 33, 0);
-                return ;
-            }
-        }
-        if (!Clients[fd].isVnick())
-            Clients[fd].setVnick(true);
-        Clients[fd].setNickname(nstring);
-        send(fd, "NICK : OK\n", 10, 0);
-    }
-}
-
-void Server::checkPassword(int fd, std::istringstream &sstring, std::string &nstring)
-{
-    if (nstring == "PASS" && !Clients[fd].vPassword)
-    {
-        sstring >> nstring;
-        if (nstring == this->password)
-        {
-            Clients[fd].vPassword = true;
-            send(fd, "Password : OK\n", 14, 0);
-        }
-        else
-            send(fd, "464 :Password incorrect\n", 24, 0);
     }
 }
 
@@ -180,6 +131,93 @@ void Server::disconnected(int fd)
         }
     }
     std::cout << "Client disconnected (fd: " << fd << ")" << std::endl;
+}
+
+void Server::checkUsername(int fd, std::istringstream &sstring, std::string &nstring)
+{
+    std::string check;
+    if (nstring == "USER" && Clients[fd].vPassword)
+    {
+        if (!(sstring >> nstring))
+        {
+            send(fd, "461 :Not enough parameters\n", 28, 0);
+            return ;
+        }
+        if ((sstring >> check))
+        {
+            send(fd, "461 :Too many parameters\n", 26, 0);
+            return ;
+        }
+        if (!Clients[fd].isVuser())
+        {
+            Clients[fd].setVuser(true);
+            Clients[fd].setUsername(nstring);
+            send(fd, "USER : OK\n", 10, 0);
+        }
+        else
+            send(fd, "462 :You cannot reassign it\n", 29, 0);
+    }
+}
+
+void Server::checkNickname(int fd, std::istringstream &sstring, std::string &nstring)
+{
+    std::string check;
+    if (nstring == "NICK" && Clients[fd].vPassword)
+    {
+        if (!(sstring >> nstring))
+        {
+            send(fd, "461 :Not enough parameters\n", 28, 0);
+            return ;
+        }
+        if ((sstring >> check))
+        {
+            send(fd, "461 :Too many parameters\n", 26, 0);
+            return ;
+        }
+        for (size_t i = 0; i < Clients.size(); i++)
+        {
+            if ((int)i != fd && nstring == Clients[i].getNickname())
+            {
+                send(fd, "433 :Nickname is already in use\n", 33, 0);
+                return ;
+            }
+        }
+        if (!Clients[fd].isVnick())
+            Clients[fd].setVnick(true);
+        Clients[fd].setNickname(nstring);
+        send(fd, "NICK : OK\n", 11, 0);
+    }
+}
+
+void Server::isValid(int fd)
+{
+    if (Clients[fd].isVnick() && Clients[fd].isVuser())
+    {
+        Clients[fd].setValid(true);
+        send(fd, "001 :Welcome to IRC\n", 21, 0);
+    }
+}
+
+void Server::checkPassword(int fd, std::istringstream &sstring, std::string &nstring)
+{
+    std::string check;
+
+    if (nstring == "PASS" && !Clients[fd].vPassword)
+    {
+        if (!(sstring >> nstring))
+            return ;
+        if (sstring >> check)
+            return ;
+        if (nstring == this->password)
+        {
+            Clients[fd].vPassword = true;
+            send(fd, "Password : OK\n", 15, 0);
+        }
+        else
+            send(fd, "464 :Password incorrect\n", 25, 0);
+    }
+    else if (nstring == "PASS" && Clients[fd].vPassword)
+        send(fd, "462 :You may not reregister\n", 29, 0);
 }
 
 bool isInt(std::string &arg)
