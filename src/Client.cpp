@@ -5,14 +5,9 @@ Client::Client()
     // throw std::runtime_error("Need a fd");
 }
 
-Client::Client(int fd) : fd(fd){}
+Client::Client(int fd) : fd(fd), valid(false), vUser(false), vNick(false){}
 
 Client::~Client(){}
-
-void Client::setInput(std::string &input)
-{
-    this->input = input;
-}
 
 void Client::setNickname(std::string &name)
 {
@@ -29,9 +24,14 @@ void Client::setValid(bool what)
     this->valid = what;
 }
 
-const std::string &Client::getInput()
+void Client::setVuser(bool what)
 {
-    return (this->input);
+    this->vUser = what;
+}
+
+void Client::setVnick(bool what)
+{
+    this->vNick = what;
 }
 
 const std::string &Client::getNickname()
@@ -52,4 +52,14 @@ const int &Client::getFd()
 bool Client::isValid()
 {
     return (this->valid);
+}
+
+bool Client::isVuser()
+{
+    return (this->vUser);
+}
+
+bool Client::isVnick()
+{
+    return (this->vNick);
 }

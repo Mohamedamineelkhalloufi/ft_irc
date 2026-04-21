@@ -88,9 +88,25 @@ void Server::acceptClient()
 
 void Server::handleClient(int fd)
 {
-    char buffr[1024] = {0};
-    recv(fd, buffr, 1023, 0);
-     if (buffr[0] == '1')
+    char buffer[1024] = {0};
+    int rrecv = recv(fd, buffer, 1023, 0);
+    if (rrecv <= 0)
+        disconnected(fd);
+    else if (rrecv > 0)
+    {
+        buffer[rrecv] = '\0';
+        this->Clients[fd].input = buffer;
+        std::istringstream sstring(this->Clients[fd].input);
+        std::string nstring;
+        while (sstring >> nstring)
+        {
+            checkPassword(fd, sstring, nstring);
+            checkNickname(fd, sstring, nstring);
+            checkUsername(fd, sstring, nstring);
+            // send(fd, "464 :Password required\r\n", 25, 0);
+        }
+    }
+    if (buffer[0] == '1')
      {
         for(size_t i = 1; i < this->vec_poll.size(); i++)
             close(this->vec_poll[i].fd);
@@ -98,7 +114,72 @@ void Server::handleClient(int fd)
         std::cout << "exit :)" << std::endl;
         exit(0);
     }
-    std::cout << buffr;
+}
+
+void Server::checkUsername(int fd, std::istringstream &sstring, std::string &nstring)
+{
+    if (nstring == "USER" && Clients[fd].vPassword)
+    {
+        sstring >> nstring;
+        if (!Clients[fd].isVuser())
+        {
+            Clients[fd].setVuser(true);
+            Clients[fd].setUsername(nstring);
+            send(fd, "USER : OK\n", 10, 0);
+        }
+        else
+            send(fd, "462 :You may not reregister\n", 29, 0);
+    }
+}
+
+void Server::checkNickname(int fd, std::istringstream &sstring, std::string &nstring)
+{
+    if (nstring == "NICK" && Clients[fd].vPassword)
+    {
+        sstring >> nstring;
+        for (size_t i = 0; i < Clients.size(); i++)
+        {
+            if (i != fd && nstring == Clients[i].getNickname())
+            {
+                send(fd, "433 :Nickname is already in use\n", 33, 0);
+                return ;
+            }
+        }
+        if (!Clients[fd].isVnick())
+            Clients[fd].setVnick(true);
+        Clients[fd].setNickname(nstring);
+        send(fd, "NICK : OK\n", 10, 0);
+    }
+}
+
+void Server::checkPassword(int fd, std::istringstream &sstring, std::string &nstring)
+{
+    if (nstring == "PASS" && !Clients[fd].vPassword)
+    {
+        sstring >> nstring;
+        if (nstring == this->password)
+        {
+            Clients[fd].vPassword = true;
+            send(fd, "Password : OK\n", 14, 0);
+        }
+        else
+            send(fd, "464 :Password incorrect\n", 24, 0);
+    }
+}
+
+void Server::disconnected(int fd)
+{
+    close(fd);
+    Clients.erase(fd);
+    for (size_t i = 0; i < vec_poll.size(); i++)
+    {
+        if (fd == vec_poll[i].fd)
+        {
+            vec_poll.erase(vec_poll.begin() + i);
+            break;
+        }
+    }
+    std::cout << "Client disconnected (fd: " << fd << ")" << std::endl;
 }
 
 bool isInt(std::string &arg)

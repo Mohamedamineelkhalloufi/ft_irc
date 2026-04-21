@@ -9,23 +9,28 @@ private:
     int fd;
     std::string username;
     std::string nickname;
-    std::string input;
     bool valid;
-
+    bool vUser;
+    bool vNick;
+    
 public:
+    std::string input;
+    bool vPassword;
     Client();
     Client(int fd);
     ~Client();
 
     bool isValid();
+    bool isVuser();
+    bool isVnick();
     const std::string &getUsername();
     const std::string &getNickname();
-    const std::string &getInput();
     const int &getFd();
     void setUsername(std::string &name);
     void setNickname(std::string &name);
-    void setInput(std::string &input);
     void setValid(bool what);
+    void setVuser(bool what);
+    void setVnick(bool what);
 };
 
 #endif

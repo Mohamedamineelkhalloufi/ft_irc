@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -13,6 +14,7 @@
 #include <cstdlib>
 #include <map>
 #include <exception>
+#include <sstream>
 #include "Client.hpp"
 
 class Client;
@@ -36,6 +38,10 @@ public:
     void run();
     void acceptClient();
     void handleClient(int fd);
+    void disconnected(int fd);
+    void checkPassword(int fd, std::istringstream &sstring, std::string &nstring);
+    void checkNickname(int fd, std::istringstream &sstring, std::string &nstring);
+    void checkUsername(int fd, std::istringstream &sstring, std::string &nstring);
 };
 bool isInt(std::string &arg);
 #endif
