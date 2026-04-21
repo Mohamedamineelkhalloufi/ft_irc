@@ -5,7 +5,7 @@ Server::Server()
     throw std::runtime_error("Need a port and password");
 }
 
-Server::Server(std::string port, std::string password)
+Server::Server(std::string port, std::string password) : off(true)
 {
     if (isInt(port))
         throw std::runtime_error("Invalid port");
@@ -51,11 +51,15 @@ void Server::init()
 
 void Server::run()
 {
-    while(true)
+    while(this->off)
     {
         int rpoll = poll(vec_poll.data(), vec_poll.size(), -1);
         if (rpoll < 0)
+        {
+            if (errno == EINTR)
+                continue ;
             throw std::runtime_error("Error poll() failed");
+        }
         size_t size_vec = vec_poll.size();
         for (size_t i = 0; i < size_vec; i++)
         {
@@ -109,7 +113,7 @@ void Server::handleClient(int fd)
         isValid(fd);
     }
     if (buffer[0] == '1')
-     {
+    {
         for(size_t i = 1; i < this->vec_poll.size(); i++)
             close(this->vec_poll[i].fd);
         close(this->socket_fd);
@@ -220,19 +224,9 @@ void Server::checkPassword(int fd, std::istringstream &sstring, std::string &nst
         send(fd, "462 :You may not reregister\n", 29, 0);
 }
 
-bool isInt(std::string &arg)
+void Server::clean()
 {
-    size_t i = 0;
-
-    if (i == arg.size())
-        return (false);
-    while (i < arg.size())
-    {
-        if(!isdigit(arg[i]))
-            return (false);
-        i++;
-    }
-    if(i != 1)
-        return (false);
-    return (true);
+    for(size_t i = 1; i < this->vec_poll.size(); i++)
+        close(this->vec_poll[i].fd);
+    close(this->socket_fd);
 }

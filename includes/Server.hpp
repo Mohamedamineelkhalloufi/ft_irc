@@ -15,7 +15,10 @@
 #include <map>
 #include <exception>
 #include <sstream>
+#include <signal.h>
+#include <cerrno>
 #include "Client.hpp"
+#include "Utils.hpp"
 
 class Client;
 
@@ -29,6 +32,7 @@ private:
     std::vector<pollfd> vec_poll;
 
 public:
+    bool off;
     std::map<int, Client> Clients;
     Server();
     Server(std::string port, std::string password);
@@ -43,6 +47,7 @@ public:
     void checkNickname(int fd, std::istringstream &sstring, std::string &nstring);
     void checkUsername(int fd, std::istringstream &sstring, std::string &nstring);
     void isValid(int fd);
+    void clean();
 };
-bool isInt(std::string &arg);
+
 #endif
