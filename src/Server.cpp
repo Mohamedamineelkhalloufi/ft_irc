@@ -7,6 +7,9 @@ Server::Server()
 
 Server::Server(std::string port, std::string password) : off(true)
 {
+    size_t to = password.find(" ");
+    if (to != std::string::npos)
+        throw std::runtime_error("Invalid password");
     if (isInt(port))
         throw std::runtime_error("Invalid port");
     if (password.size() > 20)
@@ -91,7 +94,8 @@ void Server::acceptClient()
     new_client.revents = 0;
     
     vec_poll.push_back(new_client);
-    std::cout << "Client connected (fd: " << client_fd << ")" << std::endl;}
+    std::cout << "Client connected (fd: " << client_fd << ")" << std::endl;
+}
 
 void Server::handleClient(int fd)
 {
