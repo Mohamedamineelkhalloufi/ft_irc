@@ -28,6 +28,8 @@ void handleSignals(int si)
             gServer->off = false;
             gServer->clean();
         }
-        std::cout << std::endl << "ircserv : goodbye :)" << std::endl;
+        std::cout << "\n--------------------------------------" << std::endl;
+        std::cout << "         ircserv : goodbye :) "<< std::endl;
+        std::cout << "--------------------------------------" << std::endl;
     }
 }

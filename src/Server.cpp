@@ -39,8 +39,9 @@ void Server::init()
     int rlisten = listen(socket_fd, 10);
     if (rlisten < 0)
         throw std::runtime_error("Error listen() failed");
-    std::cout << "listen in port: "<< this->port << std::endl;
-
+    std::cout << "--------------------------------------" << std::endl;
+    std::cout << "   ircserv listening on port " << this->port << std::endl;
+    std::cout << "--------------------------------------" << std::endl;
     pollfd poll_socket;
     poll_socket.fd = socket_fd;
     poll_socket.events = POLLIN;
@@ -101,24 +102,20 @@ void Server::handleClient(int fd)
     else if (rrecv > 0)
     {
         buffer[rrecv] = '\0';
-        this->Clients[fd].input = buffer;
-        std::istringstream sstring(this->Clients[fd].input);
-        std::string nstring;
-        sstring >> nstring;
-        checkPassword(fd, sstring, nstring);
-        checkNickname(fd, sstring, nstring);
-        checkUsername(fd, sstring, nstring);
-        if (!Clients[fd].vPassword)
-            send(fd, "464 :Password required\r\n", 25, 0);
-        isValid(fd);
-    }
-    if (buffer[0] == '1')
-    {
-        for(size_t i = 1; i < this->vec_poll.size(); i++)
-            close(this->vec_poll[i].fd);
-        close(this->socket_fd);
-        std::cout << "exit :)" << std::endl;
-        exit(0);
+        this->Clients[fd].input += buffer;
+        size_t to;
+        while ((to = Clients[fd].input.find("\r\n")) != std::string::npos)
+        {
+            std::string line = Clients[fd].input.substr(0, to);
+            Clients[fd].input.erase(0, to + 2);
+            std::istringstream sstring(line);
+            std::string nstring;
+            sstring >> nstring;
+            checkPassword(fd, sstring, nstring);
+            checkNickname(fd, sstring, nstring);
+            checkUsername(fd, sstring, nstring);
+            isValid(fd);
+        }
     }
 }
 
@@ -193,26 +190,18 @@ void Server::checkNickname(int fd, std::istringstream &sstring, std::string &nst
     }
 }
 
-void Server::isValid(int fd)
-{
-    if (Clients[fd].isVnick() && Clients[fd].isVuser())
-    {
-        Clients[fd].setValid(true);
-        send(fd, "001 :Welcome to IRC\n", 21, 0);
-    }
-}
 
 void Server::checkPassword(int fd, std::istringstream &sstring, std::string &nstring)
 {
     std::string check;
-
+    
     if (nstring == "PASS" && !Clients[fd].vPassword)
     {
         if (!(sstring >> nstring))
-            return ;
-        if (sstring >> check)
-            return ;
-        if (nstring == this->password)
+            send(fd, "461 :Not enough parameters\n", 28, 0);
+        else if (sstring >> check)
+            send(fd, "461 :Too many parameters\n", 26, 0);
+        else if (nstring == this->password)
         {
             Clients[fd].vPassword = true;
             send(fd, "Password : OK\n", 15, 0);
@@ -222,6 +211,17 @@ void Server::checkPassword(int fd, std::istringstream &sstring, std::string &nst
     }
     else if (nstring == "PASS" && Clients[fd].vPassword)
         send(fd, "462 :You may not reregister\n", 29, 0);
+    else if (!Clients[fd].vPassword)
+        send(fd, "464 :Password required\n", 24, 0);
+}
+
+void Server::isValid(int fd)
+{
+    if (Clients[fd].isVnick() && Clients[fd].isVuser() && !Clients[fd].isValid())
+    {
+        Clients[fd].setValid(true);
+        send(fd, "001 :Welcome to IRC\n", 21, 0);
+    }
 }
 
 void Server::clean()
