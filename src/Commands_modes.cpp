@@ -30,12 +30,12 @@ void Server::cmdMode(int fd, const std::vector<std::string>& params)
 
 	Channel& chan = _channels[target];
 
-	if (params.size() == 1)
+	if (params.size() ==  1 && chan.hasMember(fd))
 	{
 		sendToClient(fd, ":ircserv 324 " + Clients[fd].getNickname() + " " + target + " " + chan.getModeString() + "\r\n");
 		return;
 	}
-
+	
 	if (!chan.isOperator(fd))
 	{
 		sendToClient(fd, ":ircserv 482 " + Clients[fd].getNickname() + " " + target + " :You're not channel operator\r\n");

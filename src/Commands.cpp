@@ -75,14 +75,14 @@ void Server::cmdJoin(int fd, const std::vector<std::string>& params)
 }
 
 
-void Server::cmdPrivmsg(int fd, const std::vector<std::string>& params, const std::string& risala)
+void Server::cmdPrivmsg(int fd, const std::vector<std::string>& params, const std::string& input_)
 {
 	if (params.empty())
 	{
 		sendToClient(fd, ":ircserv 411 " + Clients[fd].getNickname() + " :No recipient given (PRIVMSG)\r\n");
 		return;
 	}
-	if (risala.empty())
+	if (input_.empty())
 	{
 		sendToClient(fd, ":ircserv 412 " + Clients[fd].getNickname() + " :No text to send\r\n");
 		return;
@@ -104,7 +104,7 @@ void Server::cmdPrivmsg(int fd, const std::vector<std::string>& params, const st
 			sendToClient(fd, ":ircserv 442 " + Clients[fd].getNickname() + " :You can't message yourself\r\n");
 			continue;
 		}
-		std::string msg = ":" + getPrefix(fd) + " PRIVMSG " + target + " :" + risala + "\r\n";
+		std::string msg = ":" + getPrefix(fd) + " PRIVMSG " + target + " :" + input_ + "\r\n";
 		if (target[0] == '#' || target[0] == '&')
 		{
 			if (_channels.find(target) == _channels.end() || !_channels[target].hasMember(fd))
@@ -117,7 +117,7 @@ void Server::cmdPrivmsg(int fd, const std::vector<std::string>& params, const st
 		else
 		{
 			Client *dest = getClientByNick(target);
-			if (!dest)
+			if (!dest || !dest->isValid())
 			{
 				sendToClient(fd, ":ircserv 401 " + Clients[fd].getNickname() + " " + target + " :No such nick\r\n");
 				continue;
@@ -128,7 +128,7 @@ void Server::cmdPrivmsg(int fd, const std::vector<std::string>& params, const st
 }
 
 
-void Server::cmdPart(int fd, const std::vector<std::string>& params, const std::string& risala)
+void Server::cmdPart(int fd, const std::vector<std::string>& params, const std::string& input_)
 {
 	if (params.empty())
 	{
@@ -146,13 +146,13 @@ void Server::cmdPart(int fd, const std::vector<std::string>& params, const std::
 			continue;
 		}
 
-		std::string sbab;
-		if (risala.empty())
-			sbab = Clients[fd].getNickname();
+		std::string cose;
+		if (input_.empty())
+			cose = Clients[fd].getNickname();
 		else
-			sbab = risala;
+			cose = input_;
 
-		broadcastToChannel(channame, ":" + getPrefix(fd) + " PART " + channame + " :" + sbab + "\r\n");
+		broadcastToChannel(channame, ":" + getPrefix(fd) + " PART " + channame + " :" + cose + "\r\n");
 		_channels[channame].removeMember(fd);
 		if (_channels[channame].isEmpty())
 			_channels.erase(channame);
@@ -160,7 +160,7 @@ void Server::cmdPart(int fd, const std::vector<std::string>& params, const std::
 }
 
 
-void Server::cmdKick(int fd, const std::vector<std::string>& params, const std::string& risala)
+void Server::cmdKick(int fd, const std::vector<std::string>& params, const std::string& input_)
 {
 	if (params.size() < 2)
 	{
@@ -169,7 +169,7 @@ void Server::cmdKick(int fd, const std::vector<std::string>& params, const std::
 	}
 
 	const std::string& channame = params[0];
-	const std::string& dahiya   = params[1];
+	const std::string& dhi   = params[1];
 
 	if (_channels.find(channame) == _channels.end())
 	{
@@ -189,20 +189,20 @@ void Server::cmdKick(int fd, const std::vector<std::string>& params, const std::
 		return;
 	}
 
-	Client* target = getClientByNick(dahiya);
+	Client* target = getClientByNick(dhi);
 	if (!target || !chan.hasMember(target->getFd()))
 	{
-		sendToClient(fd, ":ircserv 441 " + Clients[fd].getNickname() + " " + dahiya + " " + channame + " :They aren't on that channel\r\n");
+		sendToClient(fd, ":ircserv 441 " + Clients[fd].getNickname() + " " + dhi + " " + channame + " :They aren't on that channel\r\n");
 		return;
 	}
 
-	std::string sbab;
-	if (risala.empty())
-		sbab = Clients[fd].getNickname();
+	std::string cose;
+	if (input_.empty())
+		cose = Clients[fd].getNickname();
 	else
-		sbab = risala;
+		cose = input_;
 
-	broadcastToChannel(channame, ":" + getPrefix(fd) + " KICK " + channame + " " + dahiya + " :" + sbab + "\r\n");
+	broadcastToChannel(channame, ":" + getPrefix(fd) + " KICK " + channame + " " + dhi + " :" + cose + "\r\n");
 	chan.removeMember(target->getFd());
 	if (chan.isEmpty())
 		_channels.erase(channame);
@@ -217,7 +217,7 @@ void Server::cmdInvite(int fd, const std::vector<std::string>& params)
 		return;
 	}
 
-	const std::string& dayf    = params[0];
+	const std::string& dfi    = params[0];
 	const std::string& channame = params[1];
 
 	if (_channels.find(channame) == _channels.end())
@@ -238,25 +238,25 @@ void Server::cmdInvite(int fd, const std::vector<std::string>& params)
 		return;
 	}
 
-	Client* target = getClientByNick(dayf);
+	Client* target = getClientByNick(dfi);
 	if (!target)
 	{
-		sendToClient(fd, ":ircserv 401 " + Clients[fd].getNickname() + " " + dayf + " :No such nick\r\n");
+		sendToClient(fd, ":ircserv 401 " + Clients[fd].getNickname() + " " + dfi + " :No such nick\r\n");
 		return;
 	}
 	if (chan.hasMember(target->getFd()))
 	{
-		sendToClient(fd, ":ircserv 443 " + Clients[fd].getNickname() + " " + dayf + " " + channame + " :is already on channel\r\n");
+		sendToClient(fd, ":ircserv 443 " + Clients[fd].getNickname() + " " + dfi + " " + channame + " :is already on channel\r\n");
 		return;
 	}
 
 	chan.addInvited(target->getFd());
-	sendToClient(fd, ":ircserv 341 " + Clients[fd].getNickname() + " " + dayf + " " + channame + "\r\n");
-	sendToClient(target->getFd(), ":" + getPrefix(fd) + " INVITE " + dayf + " :" + channame + "\r\n");
+	sendToClient(fd, ":ircserv 341 " + Clients[fd].getNickname() + " " + dfi + " " + channame + "\r\n");
+	sendToClient(target->getFd(), ":" + getPrefix(fd) + " INVITE " + dfi + " :" + channame + "\r\n");
 }
 
 
-void Server::cmdTopic(int fd, const std::vector<std::string>& params, const std::string& risala, bool hasrisala)
+void Server::cmdTopic(int fd, const std::vector<std::string>& params, const std::string& input_, bool hasinput_)
 {
 	if (params.empty())
 	{
@@ -278,7 +278,7 @@ void Server::cmdTopic(int fd, const std::vector<std::string>& params, const std:
 		return;
 	}
 
-	if (!hasrisala)
+	if (!hasinput_)
 	{
 		if (chan.getTopic().empty())
 			sendToClient(fd, ":ircserv 331 " + Clients[fd].getNickname() + " " + channame + " :No topic is set\r\n");
@@ -293,6 +293,6 @@ void Server::cmdTopic(int fd, const std::vector<std::string>& params, const std:
 		return;
 	}
 
-	chan.setTopic(risala);
-	broadcastToChannel(channame, ":" + getPrefix(fd) + " TOPIC " + channame + " :" + risala + "\r\n");
+	chan.setTopic(input_);
+	broadcastToChannel(channame, ":" + getPrefix(fd) + " TOPIC " + channame + " :" + input_ + "\r\n");
 }

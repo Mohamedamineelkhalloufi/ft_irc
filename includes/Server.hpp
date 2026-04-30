@@ -61,11 +61,11 @@ public:
     void         sendNames(int fd, Channel* chan);
 
     void cmdJoin(int fd, const std::vector<std::string>& params);
-    void cmdPrivmsg(int fd, const std::vector<std::string>& params, const std::string& risala);
-    void cmdPart(int fd, const std::vector<std::string>& params, const std::string& risala);
-    void cmdKick(int fd, const std::vector<std::string>& params, const std::string& risala);
+    void cmdPrivmsg(int fd, const std::vector<std::string>& params, const std::string& input_);
+    void cmdPart(int fd, const std::vector<std::string>& params, const std::string& input_);
+    void cmdKick(int fd, const std::vector<std::string>& params, const std::string& input_);
     void cmdInvite(int fd, const std::vector<std::string>& params);
-    void cmdTopic(int fd, const std::vector<std::string>& params, const std::string& risala, bool hasrisala);
+    void cmdTopic(int fd, const std::vector<std::string>& params, const std::string& input_, bool hasinput_);
     void cmdMode(int fd, const std::vector<std::string>& params);
 };
 

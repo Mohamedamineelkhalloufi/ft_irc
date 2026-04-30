@@ -19,7 +19,7 @@ Server::Server(std::string port, std::string password)
     this->port = std::atoi(port.c_str());
     this->password = password;
     if (this->port < 1024 || this->port > 65535)
-        throw std::runtime_error("Error: Port out of range (1024–65535).");
+        throw std::runtime_error("Error: Port out of range (1024–65535)");
 }
 
 Server::~Server(){}
@@ -136,9 +136,9 @@ void Server::handleClient(int fd)
                     {
                         hasmsg = true;
                         msg = token.substr(1);
-                        std::string kolch;
-                        if (std::getline(sstring, kolch))
-                            msg += kolch;
+                        std::string g_msg;
+                        if (std::getline(sstring, g_msg))
+                            msg += g_msg;
                         break;
                     }
                     params.push_back(token);
