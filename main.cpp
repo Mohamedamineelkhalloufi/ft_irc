@@ -11,7 +11,6 @@ int main(int ac, char **av)
     {
         Server irc(av[1], av[2]);
     
-        gServer = &irc;
         signal(SIGINT, handleSignals);
         signal(SIGTERM, handleSignals);
         irc.init();

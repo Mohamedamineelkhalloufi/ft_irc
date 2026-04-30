@@ -1,11 +1,8 @@
 #include "../includes/Client.hpp"
 
-Client::Client()
-{
-    // throw std::runtime_error("Need a fd");
-}
+Client::Client(){}
 
-Client::Client(int fd) : fd(fd), valid(false), vUser(false), vNick(false){}
+Client::Client(int fd) : fd(fd), valid(false), vUser(false), vNick(false), vPassword(false){}
 
 Client::~Client(){}
 

@@ -14,8 +14,6 @@ bool isInt(std::string &arg)
             return (false);
         i++;
     }
-    if(i != 1)
-        return (false);
     return (true);
 }
 
@@ -23,11 +21,8 @@ void handleSignals(int si)
 {
     if (si == SIGINT ||  si == SIGTERM)
     {
-        if(gServer)
-        {
-            gServer->off = false;
-            gServer->clean();
-        }
+        Server::off = false;
+
         std::cout << "\n--------------------------------------" << std::endl;
         std::cout << "         ircserv : goodbye :) "<< std::endl;
         std::cout << "--------------------------------------" << std::endl;
