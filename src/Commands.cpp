@@ -239,7 +239,7 @@ void Server::cmdInvite(int fd, const std::vector<std::string>& params)
 	}
 
 	Client* target = getClientByNick(dfi);
-	if (!target)
+	if (!target || !target->isValid())
 	{
 		sendToClient(fd, ":ircserv 401 " + Clients[fd].getNickname() + " " + dfi + " :No such nick\r\n");
 		return;

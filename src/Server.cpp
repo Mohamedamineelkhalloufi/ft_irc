@@ -14,7 +14,7 @@ Server::Server(std::string port, std::string password)
         throw std::runtime_error("Error: Password cannot contain spaces");
     if (!isInt(port))
         throw std::runtime_error("Error: Invalid port");
-    if (password.size() > 20)
+    if (password.size() > 10)
         throw std::runtime_error("Error: Password too long");
     this->port = std::atoi(port.c_str());
     this->password = password;
