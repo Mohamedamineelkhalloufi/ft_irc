@@ -115,11 +115,12 @@ void Server::handleClient(int fd)
         {
             std::string line = Clients[fd].input.substr(0, to);
         
-            Clients[fd].input.erase(0, to + 1);
+            Clients[fd].input.erase(0, to + 2);
  
             std::istringstream sstring(line);
             std::string nstring;
             sstring >> nstring;
+
             checkPassword(fd, sstring, nstring);
             checkNickname(fd, sstring, nstring);
             checkUsername(fd, sstring, nstring);
@@ -165,16 +166,16 @@ void Server::handleClient(int fd)
 void Server::disconnected(int fd)
 {
     std::vector<std::string> lshrem;
-        for (std::map<std::string, Channel>::iterator it = _channels.begin();
-             it != _channels.end(); ++it)
+    for (std::map<std::string, Channel>::iterator it = _channels.begin();
+            it != _channels.end(); ++it)
+    {
+        if (it->second.hasMember(fd))
         {
-            if (it->second.hasMember(fd))
-            {
-                it->second.removeMember(fd);
-                if (it->second.isEmpty())
-                    lshrem.push_back(it->first);
-            }
+            it->second.removeMember(fd);
+            if (it->second.isEmpty())
+                lshrem.push_back(it->first);
         }
+    }
     for (size_t i = 0; i < lshrem.size(); i++)
             _channels.erase(lshrem[i]);
     close(fd);
@@ -197,52 +198,48 @@ void Server::checkUsername(int fd, std::istringstream &sstring, std::string &nst
     {
         if (!(sstring >> nstring))
         {
-            send(fd, "461 :Not enough parameters\n", 28, 0);
-            return ;
-        }
-        if ((sstring >> check))
-        {
-            send(fd, "461 :Too many parameters\n", 26, 0);
+            sendToClient(fd, ":ircserv 461 * USER :Not enough parameters\r\n");
             return ;
         }
         if (!Clients[fd].isVuser())
         {
             Clients[fd].setVuser(true);
             Clients[fd].setUsername(nstring);
-            send(fd, "USER : OK\n", 10, 0);
+            sendToClient(fd, ":ircserv NOTICE * :Username set\r\n");
         }
         else
-            send(fd, "462 :You cannot reassign it\n", 29, 0);
+            sendToClient(fd, ":ircserv 462 * :You may not reregister\r\n");
     }
 }
 
 void Server::checkNickname(int fd, std::istringstream &sstring, std::string &nstring)
 {
     std::string check;
+
     if (nstring == "NICK" && Clients[fd].vPassword)
     {
         if (!(sstring >> nstring))
         {
-            send(fd, "461 :Not enough parameters\n", 28, 0);
+            sendToClient(fd, ":ircserv 431 * :No nickname given\r\n");
             return ;
         }
         if ((sstring >> check))
         {
-            send(fd, "461 :Too many parameters\n", 26, 0);
+            sendToClient(fd, ":ircserv 461 * NICK :Too many parameters\r\n");
             return ;
         }
         for (size_t i = 0; i < Clients.size(); i++)
         {
             if ((int)i != fd && nstring == Clients[i].getNickname())
             {
-                send(fd, "433 :Nickname is already in use\n", 33, 0);
+                sendToClient(fd, ":ircserv 433 * " + nstring + " :Nickname is already in use\r\n");
                 return ;
             }
         }
         if (!Clients[fd].isVnick())
             Clients[fd].setVnick(true);
         Clients[fd].setNickname(nstring);
-        send(fd, "NICK : OK\n", 11, 0);
+        sendToClient(fd, ":ircserv NOTICE * :Nickname set to " + nstring + "\r\n");
     }
 }
 
@@ -253,21 +250,21 @@ void Server::checkPassword(int fd, std::istringstream &sstring, std::string &nst
     if (nstring == "PASS" && !Clients[fd].vPassword)
     {
         if (!(sstring >> nstring))
-            send(fd, "461 :Not enough parameters\n", 28, 0);
+            sendToClient(fd, ":ircserv 461 * PASS :Not enough parameters\r\n");
         else if (sstring >> check)
-            send(fd, "461 :Too many parameters\n", 26, 0);
+            sendToClient(fd, ":ircserv 461 * PASS :Too many parameters\r\n");
         else if (nstring == this->password)
         {
             Clients[fd].vPassword = true;
-            send(fd, "Password : OK\n", 15, 0);
+            sendToClient(fd, ":ircserv NOTICE * :Password accepted\r\n");
         }
         else
-            send(fd, "464 :Password incorrect\n", 25, 0);
+            sendToClient(fd, ":ircserv 464 * :Password incorrect\r\n");
     }
     else if (nstring == "PASS" && Clients[fd].vPassword)
-        send(fd, "462 :You may not reregister\n", 29, 0);
+        sendToClient(fd, ":ircserv 462 * :You may not reregister\r\n");
     else if (!Clients[fd].vPassword)
-        send(fd, "464 :Password required\n", 24, 0);
+        sendToClient(fd, ":ircserv 464 * :Password required\r\n");
 }
 
 void Server::isValid(int fd)
@@ -275,7 +272,8 @@ void Server::isValid(int fd)
     if (Clients[fd].isVnick() && Clients[fd].isVuser() && !Clients[fd].isValid())
     {
         Clients[fd].setValid(true);
-        send(fd, "001 :Welcome to IRC\n", 21, 0);
+        std::string nick = Clients[fd].getNickname();
+        sendToClient(fd, ":ircserv 001 " + nick + " :Welcome to the IRC Network.\r\n");
     }
 }
 
